@@ -54,6 +54,8 @@ class DriveSyncer {
       includeAssets: true,
     );
 
+    log.info('_uploadLocalChanges: found ${allFiles.length} files: $allFiles');
+
     for (final relativePath in allFiles) {
       try {
         await uploadFile(api, relativePath);
