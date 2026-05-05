@@ -30,6 +30,7 @@ import 'package:saber/components/toolbar/color_bar.dart';
 import 'package:saber/components/toolbar/editor_bottom_sheet.dart';
 import 'package:saber/components/toolbar/editor_page_manager.dart';
 import 'package:saber/components/toolbar/toolbar.dart';
+import 'package:saber/components/editor/web_annotations_sheet.dart';
 import 'package:saber/data/editor/editor_core_info.dart';
 import 'package:saber/data/editor/editor_exporter.dart';
 import 'package:saber/data/editor/editor_history.dart';
@@ -790,6 +791,20 @@ class EditorState extends State<Editor> {
 
   void onHovering() {
     isHovering = true;
+  }
+
+  void _showWebAnnotations(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+        maxWidth: 600,
+      ),
+      builder: (context) => WebAnnotationsSheet(filePath: coreInfo.filePath),
+    );
   }
 
   void onHoveringEnd() {
@@ -1765,6 +1780,14 @@ class EditorState extends State<Editor> {
                         ),
                       );
                     },
+                  ),
+                  IconButton(
+                    icon: const AdaptiveIcon(
+                      icon: Icons.sticky_note_2_outlined,
+                      cupertinoIcon: CupertinoIcons.doc_text,
+                    ),
+                    tooltip: 'Web annotations',
+                    onPressed: () => _showWebAnnotations(context),
                   ),
                   IconButton(
                     icon: const AdaptiveIcon(
