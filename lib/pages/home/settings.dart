@@ -6,14 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:material_symbols_icons/symbols.dart';
 import 'package:saber/components/navbar/responsive_navbar.dart';
 import 'package:saber/components/settings/app_info.dart';
 import 'package:saber/components/settings/nextcloud_profile.dart';
-import 'package:saber/data/googledrive/drive_client.dart';
-import 'package:saber/data/googledrive/drive_syncer.dart';
-import 'package:saber/data/prefs.dart';
-import 'package:saber/pages/user/drive_login.dart';
 import 'package:saber/components/settings/settings_button.dart';
 import 'package:saber/components/settings/settings_color.dart';
 import 'package:saber/components/settings/settings_directory_selector.dart';
@@ -29,6 +24,8 @@ import 'package:saber/components/theming/saber_theme.dart';
 import 'package:saber/components/theming/uni_icon.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
 import 'package:saber/data/flavor_config.dart';
+import 'package:saber/data/googledrive/drive_client.dart';
+import 'package:saber/data/googledrive/drive_syncer.dart';
 import 'package:saber/data/is_this_a_test.dart';
 import 'package:saber/data/locales.dart';
 import 'package:saber/data/prefs.dart';
@@ -36,6 +33,7 @@ import 'package:saber/data/routes.dart';
 import 'package:saber/data/sentry/sentry_init.dart';
 import 'package:saber/data/tools/shape_pen.dart';
 import 'package:saber/i18n/strings.g.dart';
+import 'package:saber/pages/user/drive_login.dart';
 import 'package:stow/stow.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -558,7 +556,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: t.settings.prefLabels.simplifiedHomeLayout,
                   subtitle: t.settings.prefDescriptions.simplifiedHomeLayout,
                   iconBuilder: (simplified) =>
-                      simplified ? Icons.grid_view : Symbols.browse,
+                      simplified ? Icons.grid_view : Icons.grid_view_outlined,
                   pref: stows.simplifiedHomeLayout,
                 ),
                 SettingsSubtitle(subtitle: t.settings.prefCategories.advanced),

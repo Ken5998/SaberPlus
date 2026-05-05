@@ -93,7 +93,7 @@ class CanvasHud extends HookWidget {
                 child: AnimatedRotation(
                   duration: const Duration(milliseconds: 200),
                   turns: axisAlignedPanLock ? 0 : 1 / 8,
-                  child: const Icon(Symbols.drag_pan),
+                  child: const Icon(Icons.pan_tool_outlined),
                 ),
               ),
             ),
