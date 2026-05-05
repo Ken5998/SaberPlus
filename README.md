@@ -1,29 +1,57 @@
-# Saber — Fork personale
+# SaberPlus
 
-**Fork di [Saber Notes](https://github.com/saber-notes/saber) con integrazioni Google Drive e supporto ai pulsanti della Redmi Smart Pen.**
+**Fork di [Saber Notes](https://github.com/saber-notes/saber) con Google Drive sync, supporto Redmi Smart Pen, webapp e widget Android.**
 
-Questo fork mantiene tutto il lavoro originale del progetto Saber e aggiunge funzionalità specifiche per l'uso con il **Redmi Pad 2** e la **Redmi Smart Pen**, oltre alla sincronizzazione con **Google Drive** al posto di Nextcloud.
+SaberPlus è un'app per prendere appunti con il pennino su Android, con sincronizzazione automatica su Google Drive e una webapp compagna per visualizzare e annotare le note dal browser.
 
 ---
 
-## Modifiche rispetto all'originale
+## Funzionalità aggiunte rispetto all'originale
 
-### 🖊️ Pulsanti Redmi Smart Pen
-I pulsanti laterali della Redmi Smart Pen vengono intercettati nativamente tramite `dispatchKeyEvent` in `MainActivity.kt`:
+### 🖊️ Redmi Smart Pen
+I pulsanti laterali della penna vengono intercettati nativamente:
 
 | Pulsante | Azione |
 |---|---|
-| Pulsante 1 (PAGE_DOWN) | Toggle gomma — se già attiva, torna alla penna precedente |
-| Pulsante 2 (PAGE_UP) | Toggle selezione — se già attiva, torna alla penna precedente |
+| Pulsante 1 (PAGE_DOWN) | Toggle gomma |
+| Pulsante 2 (PAGE_UP) | Toggle selezione |
 
 ### ☁️ Sincronizzazione Google Drive
-Sostituisce completamente il sistema di sync Nextcloud con Google Drive:
-
-- Autenticazione OAuth2 tramite browser (flusso installed-app, senza SHA1)
+- Autenticazione OAuth2 tramite browser — nessuno SHA1 richiesto
 - File salvati in `appDataFolder` — privati, accessibili solo dall'app
-- Upload automatico dopo ogni modifica (con debounce di 3 secondi)
-- Sync completo all'avvio se già autenticati
-- Nessun server intermedio — i dati restano nel tuo Google Drive
+- Upload automatico dopo ogni modifica (debounce 3 secondi)
+- Download automatico ogni 30 secondi
+- Indicatore sync nell'header con pallino colorato (grigio/blu/verde/rosso)
+- Notifica SnackBar quando una nota viene aggiornata da un altro dispositivo
+- Protezione dell'editor durante il sync — nessun crash se la nota è aperta
+
+### 📝 Annotazioni web bidirezionali
+- Drawer "Web Annotations" nell'editor per leggere le note aggiunte dalla webapp
+- Testo Quill copiabile direttamente nell'editor
+- Immagini e screenshot visibili nel drawer
+- Sincronizzazione bidirezionale tramite file `.quill.json` su Drive
+
+### 🏠 Widget home screen
+- Widget 2×2 con le ultime 5 note modificate
+- Tocca una nota per aprirla direttamente nell'editor
+- Si aggiorna automaticamente ogni 30 minuti
+
+---
+
+## Webapp compagna
+
+Le note sincronizzate su Drive sono visualizzabili e annotabili via browser tramite **[SaberPlus Web](https://github.com/Ken5998/saber-web)** — una webapp Next.js hostata su `notes.ken.ovh`.
+
+**Funzionalità webapp:**
+- Login Google con refresh token automatico
+- Lista note con miniature, cartelle e ricerca
+- Rendering fedele dei tratti a mano con canvas hi-DPI
+- Zoom, pan, pinch-to-zoom
+- Export PNG e PDF
+- Editor Quill con formattazione (grassetto, corsivo, liste)
+- Upload screenshot e immagini con drag&drop e paste
+- Dark mode completa
+- PWA installabile
 
 ---
 
@@ -40,15 +68,12 @@ Sostituisce completamente il sistema di sync Nextcloud con Google Drive:
 ## Setup ambiente (macOS)
 
 ```bash
-# Flutter e Android SDK tramite Homebrew
 brew install flutter --cask android-commandlinetools openjdk@17
 
-# Aggiungi al PATH (~/.zshrc)
 export ANDROID_HOME="/opt/homebrew/share/android-commandlinetools"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
 
-# Installa SDK Android
 sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 flutter doctor --android-licenses
 ```
@@ -61,10 +86,9 @@ flutter doctor --android-licenses
 2. Abilita **Google Drive API**
 3. Configura la **OAuth consent screen** (External)
 4. Crea credenziali **OAuth 2.0 → Desktop app**
-5. Salva Client ID e Client Secret in un file `.env` locale:
+5. Salva le credenziali in `.env` (non committare):
 
 ```bash
-# .env (non committare questo file)
 GOOGLE_CLIENT_ID=il_tuo_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=il_tuo_client_secret
 ```
@@ -74,10 +98,14 @@ GOOGLE_CLIENT_SECRET=il_tuo_client_secret
 ## Build e Run
 
 ```bash
-# Installa le dipendenze
+# Clone
+git clone https://github.com/Ken5998/SaberPlus.git
+cd SaberPlus
+
+# Dipendenze
 flutter pub get
 
-# Avvia in debug sul dispositivo connesso
+# Debug sul dispositivo connesso
 flutter run \
   --dart-define=GOOGLE_CLIENT_ID=$(grep GOOGLE_CLIENT_ID .env | cut -d= -f2) \
   --dart-define=GOOGLE_CLIENT_SECRET=$(grep GOOGLE_CLIENT_SECRET .env | cut -d= -f2)
@@ -90,14 +118,12 @@ flutter build apk --release \
 
 ---
 
-## Connessione dispositivo Android (debug USB)
+## Connessione dispositivo Android
 
 1. **Impostazioni → Info sul dispositivo** → tocca "Versione MIUI" 7 volte
-2. **Impostazioni → Impostazioni aggiuntive → Opzioni sviluppatore**:
-   - Attiva **Debug USB**
-   - Attiva **Installa tramite USB**
-3. Collega il dispositivo e autorizza il debug sul popup
-4. Verifica la connessione: `adb devices`
+2. **Opzioni sviluppatore** → attiva **Debug USB** e **Installa tramite USB**
+3. Collega via USB e autorizza sul popup
+4. `adb devices` per verificare
 
 ---
 
@@ -105,73 +131,64 @@ flutter build apk --release \
 
 ```
 android/app/src/main/kotlin/com/adilhanney/saber/
-└── MainActivity.kt              # Intercetta KeyEvent per i pulsanti Smart Pen
+├── MainActivity.kt              # KeyEvent Smart Pen + MethodChannel
+├── RecentNotesWidget.kt         # Widget home screen note recenti
+
+android/app/src/main/res/
+├── drawable/ic_launcher_foreground_plus.xml  # Badge + icona
+├── layout/widget_recent_notes.xml            # Layout widget
+└── xml/widget_recent_notes_info.xml          # Config widget
 
 lib/
-├── data/
-│   └── googledrive/
-│       ├── drive_client.dart    # Autenticazione OAuth2 Google
-│       └── drive_syncer.dart    # Upload/download file su Drive
-├── pages/
-│   ├── user/
-│   │   └── drive_login.dart     # Pagina di login Google Drive
-│   └── editor/
-│       └── editor.dart          # Modificato: gestione pulsanti Smart Pen
-└── data/
-    ├── prefs.dart               # Aggiunto: preferenze Drive
-    ├── file_manager/
-    │   └── file_manager.dart    # Aggiunto: enqueue upload Drive
-    └── main.dart                # Aggiunto: sync Drive all'avvio
+├── components/editor/
+│   └── web_annotations_sheet.dart   # Drawer annotazioni web
+├── data/googledrive/
+│   ├── drive_client.dart            # OAuth2 Google
+│   └── drive_syncer.dart            # Upload/download Drive
+├── data/editor/
+│   └── editor_core_info.dart        # Caricamento .quill.json
+├── data/file_manager/
+│   └── file_manager.dart            # Enqueue upload Drive
+├── pages/user/
+│   └── drive_login.dart             # Pagina login Drive
+├── pages/editor/
+│   └── editor.dart                  # Smart Pen + drawer annotations
+├── data/prefs.dart                  # Preferenze Drive
+└── main.dart                        # Sync Drive all'avvio + polling
 ```
 
 ---
 
-## Come funziona il sync
+## Gestione aggiornamenti
 
+Per ricevere aggiornamenti dal repo originale Saber:
+
+```bash
+git remote add upstream https://github.com/saber-notes/saber.git
+git fetch upstream
+git log upstream/main --oneline | head -20
 ```
-App scrive nota
-      │
-      ▼
-FileManager.writeFile()
-      │
-      ▼
-DriveUploadQueue.enqueue()   ← debounce 3 secondi
-      │
-      ▼
-DriveSyncer.uploadFile()
-      │
-      ▼
-Google Drive (appDataFolder)
-      │
-      ▼
-Webapp (notes.tuodominio.com)
-```
+
+I file modificati da SaberPlus sono circoscritti — i conflitti sono gestibili manualmente caso per caso.
 
 ---
 
-## Webapp compagna
+## File da non committare
 
-Le note sincronizzate su Drive sono visualizzabili via browser tramite **[Saber Web](https://github.com/Ken5998/saber-web)** — una webapp Next.js che si autentica con lo stesso account Google e renderizza i tratti a mano su canvas.
-
----
-
-## Roadmap
-
-- [ ] Sync bidirezionale migliorato (conflict resolution)
-- [ ] Indicatore di sync nella UI (icona cloud)
-- [ ] Supporto multi-account
-- [ ] Notifica quando una nota è stata aggiornata da un altro dispositivo
+```
+.env
+android/key.properties
+android/app/release.keystore
+```
 
 ---
 
 ## Crediti
 
-Questo progetto è un fork di [Saber Notes](https://github.com/saber-notes/saber) di [@adilhanney](https://github.com/adilhanney).  
-Tutto il lavoro originale appartiene ai rispettivi autori.
+Fork di [Saber Notes](https://github.com/saber-notes/saber) di [@adilhanney](https://github.com/adilhanney). Tutto il lavoro originale appartiene ai rispettivi autori.
 
 ---
 
 ## Licenza
 
-**GPL-3.0** — in conformità con il progetto originale.  
-Vedi [LICENSE](LICENSE) per i dettagli.
+**GPL-3.0** — in conformità con il progetto originale.
