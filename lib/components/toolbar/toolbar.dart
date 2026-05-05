@@ -446,7 +446,7 @@ class _ToolbarState extends State<Toolbar> {
                   widget.setTool(LaserPointer.currentLaserPointer);
                 },
                 padding: buttonPadding,
-                child: const Icon(Symbols.stylus_laser_pointer),
+                child: const Icon(Icons.flashlight_on_outlined),
               ),
               ToolbarIconButton(
                 tooltip: t.editor.toolbar.toggleEraser,
