@@ -40,7 +40,7 @@ I pulsanti laterali della penna vengono intercettati nativamente:
 
 ## Webapp compagna
 
-Le note sincronizzate su Drive sono visualizzabili e annotabili via browser tramite **[SaberPlus Web](https://github.com/Ken5998/saber-web)** — una webapp Next.js hostata su `notes.ken.ovh`.
+Le note sincronizzate su Drive sono visualizzabili e annotabili via browser tramite **[SaberPlus Web](https://github.com/Ken5998/saber-web)** — una webapp Next.js self-hostata..
 
 **Funzionalità webapp:**
 - Login Google con refresh token automatico
