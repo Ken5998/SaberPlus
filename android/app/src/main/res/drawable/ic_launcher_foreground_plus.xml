@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Badge cerchio verde scuro -->
+    <!-- Cerchio badge -->
     <item
         android:gravity="top|end"
-        android:width="36dp"
-        android:height="36dp"
-        android:right="4dp"
-        android:top="4dp">
+        android:width="22dp"
+        android:height="22dp"
+        android:right="20dp"
+        android:top="18dp">
         <shape android:shape="oval">
             <solid android:color="#FF047857"/>
             <stroke android:width="1.5dp" android:color="#FFFFFFFF"/>
@@ -17,10 +17,10 @@
     <!-- Linea orizzontale + -->
     <item
         android:gravity="top|end"
-        android:width="16dp"
-        android:height="2.5dp"
-        android:right="14dp"
-        android:top="21dp">
+        android:width="10dp"
+        android:height="2dp"
+        android:right="27dp"
+        android:top="28dp">
         <shape android:shape="rectangle">
             <solid android:color="#FFFFFFFF"/>
             <corners android:radius="1dp"/>
@@ -30,10 +30,10 @@
     <!-- Linea verticale + -->
     <item
         android:gravity="top|end"
-        android:width="2.5dp"
-        android:height="16dp"
-        android:right="21dp"
-        android:top="14dp">
+        android:width="2dp"
+        android:height="10dp"
+        android:right="31dp"
+        android:top="24dp">
         <shape android:shape="rectangle">
             <solid android:color="#FFFFFFFF"/>
             <corners android:radius="1dp"/>
