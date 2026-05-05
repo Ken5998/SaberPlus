@@ -41,6 +41,14 @@ class DriveSyncer {
   DriveSyncer._();
 
   static bool _running = false;
+  static bool get isRunning => _running;
+
+  /// Paths currently open in the editor — never overwrite these.
+  static final _openFiles = <String>{};
+
+  static void markFileOpen(String relativePath) => _openFiles.add(relativePath);
+  static void markFileClosed(String relativePath) =>
+      _openFiles.remove(relativePath);
 
   /// Starts a full sync cycle (upload local changes, download remote changes).
   /// Safe to call multiple times — only one cycle runs at a time.
@@ -140,11 +148,15 @@ class DriveSyncer {
 
   static Future<void> _downloadRemoteChanges(drive.DriveApi api) async {
     final remoteFiles = await _listRemoteFiles(api);
-    log.info(
-      '_downloadRemoteChanges: found ${remoteFiles.length} remote files',
-    );
 
     for (final remoteFile in remoteFiles) {
+      // Handle .quill.json files (web annotations)
+      final quillNoteId = remoteFile.appProperties?['quillNoteId'];
+      if (quillNoteId != null) {
+        await _downloadQuillFile(api, remoteFile, quillNoteId);
+        continue;
+      }
+
       final relativePath = remoteFile.appProperties?['path'];
       if (relativePath == null) continue;
 
@@ -185,6 +197,12 @@ class DriveSyncer {
       }
     }
 
+    // Skip if file is currently open in editor
+    if (_openFiles.contains(relativePath)) {
+      log.fine('skipping download (file open): $relativePath');
+      return;
+    }
+
     // Download
     final media =
         await api.files.get(
@@ -203,6 +221,57 @@ class DriveSyncer {
     );
     log.fine('downloaded: $relativePath');
     _notifyFileUpdated(relativePath);
+  }
+
+  /// Downloads a .quill.json web annotation file and saves it
+  /// next to the corresponding .sbn2 file.
+  static Future<void> _downloadQuillFile(
+    drive.DriveApi api,
+    drive.File remoteFile,
+    String noteFileId,
+  ) async {
+    try {
+      // Find the note's local path by searching remote files
+      final noteList = await api.files.list(
+        spaces: 'appDataFolder',
+        $fields: 'files(id, appProperties)',
+      );
+      final noteFile = noteList.files
+          ?.where((f) => f.id == noteFileId)
+          .firstOrNull;
+      final notePath = noteFile?.appProperties?['path'];
+      if (notePath == null) return;
+
+      final localPath = '$notePath.quill.json';
+      final localFile = FileManager.getFile(localPath);
+      final remoteModified = remoteFile.modifiedTime?.toUtc();
+
+      if (localFile.existsSync() && remoteModified != null) {
+        final localModified = localFile.lastModifiedSync().toUtc();
+        final diff = remoteModified.difference(localModified);
+        if (diff.abs() < const Duration(seconds: 5)) return;
+        if (localModified.isAfter(remoteModified)) return;
+      }
+
+      final media =
+          await api.files.get(
+                remoteFile.id!,
+                downloadOptions: drive.DownloadOptions.fullMedia,
+              )
+              as drive.Media;
+
+      final bytes = await _collectStream(media.stream);
+      await FileManager.writeFile(
+        localPath,
+        bytes,
+        alsoUpload: false,
+        awaitWrite: true,
+        lastModified: remoteModified,
+      );
+      log.fine('downloaded quill: $localPath');
+    } catch (e, st) {
+      log.warning('_downloadQuillFile: failed: $e', e, st);
+    }
   }
 
   // ─── Delete ────────────────────────────────────────────────────────────────

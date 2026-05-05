@@ -22,6 +22,7 @@ import 'package:sbn/canvas_background_pattern.dart';
 import 'package:sbn/has_size.dart';
 import 'package:sbn/read_only_reason.dart';
 import 'package:worker_manager/worker_manager.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 class EditorCoreInfo {
   static final log = Logger('EditorCoreInfo');
@@ -353,7 +354,6 @@ class EditorCoreInfo {
     bool onlyFirstPage = false,
   }) async {
     final bsonBytes = await FileManager.readFile(path + Editor.extension);
-
     final String? jsonString;
     if (bsonBytes != null) {
       jsonString = null;
@@ -368,12 +368,44 @@ class EditorCoreInfo {
       return EditorCoreInfo(filePath: path);
     }
 
-    return loadFromFileContents(
+    final coreInfo = await loadFromFileContents(
       jsonString: jsonString,
       bsonBytes: bsonBytes,
       path: path,
       onlyFirstPage: onlyFirstPage,
     );
+
+    // Load web annotations (Quill delta) from separate .quill.json file
+    await _loadQuillAnnotations(coreInfo, path);
+
+    return coreInfo;
+  }
+
+  /// Loads the Quill delta from a separate .quill.json file
+  /// written by the webapp, and injects it into the first page.
+  static Future<void> _loadQuillAnnotations(
+    EditorCoreInfo coreInfo,
+    String path,
+  ) async {
+    try {
+      final quillBytes = await FileManager.readFile('$path.quill.json');
+      if (quillBytes == null) return;
+
+      final jsonString = utf8.decode(quillBytes);
+      final dynamic jsonData = jsonDecode(jsonString);
+      if (jsonData == null || jsonData is! List || jsonData.isEmpty) return;
+      if (coreInfo.pages.isEmpty) return;
+
+      final page = coreInfo.pages.first;
+      final doc = Document.fromJson(jsonData.cast<dynamic>());
+      page.quill.controller.compose(
+        doc.toDelta(),
+        const TextSelection.collapsed(offset: 0),
+        ChangeSource.local,
+      );
+    } catch (e) {
+      log.warning('_loadQuillAnnotations: failed: $e');
+    }
   }
 
   @visibleForTesting

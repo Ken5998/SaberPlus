@@ -49,6 +49,7 @@ import 'package:saber/data/tools/select.dart';
 import 'package:saber/data/tools/shape_pen.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:saber/pages/home/whiteboard.dart';
+import 'package:saber/data/googledrive/drive_syncer.dart';
 import 'package:sbn/change.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -188,15 +189,16 @@ class EditorState extends State<Editor> {
 
   void _initAsync() async {
     final filePath = await widget.initialPath;
+    // Mark file as open immediately to prevent Drive sync from
+    // overwriting it while we load it
+    DriveSyncer.markFileOpen(filePath);
     filenameTextEditingController.text = p.basename(filePath);
-
     if (needsNaming) {
       filenameTextEditingController.selection = TextSelection(
         baseOffset: 0,
         extentOffset: filenameTextEditingController.text.length,
       );
     }
-
     await _loadCoreInfo(filePath);
 
     if (widget.pdfPath != null) {
@@ -205,6 +207,7 @@ class EditorState extends State<Editor> {
   }
 
   Future _loadCoreInfo(String filePath) async {
+    // DriveSyncer.markFileOpen(filePath);
     coreInfo = await EditorCoreInfo.loadFromFilePath(filePath);
     if (coreInfo.readOnly) {
       log.info('Loaded file as read-only: ${coreInfo.readOnlyReason}');
@@ -2125,7 +2128,7 @@ class EditorState extends State<Editor> {
   @override
   void dispose() {
     unawaited(_cleanUpAsync());
-
+    DriveSyncer.markFileClosed(coreInfo.filePath);
     DynamicMaterialApp.removeFullscreenListener(_setState);
 
     _delayedSaveTimer?.cancel();
@@ -2155,6 +2158,12 @@ class EditorState extends State<Editor> {
       }
       await saveToFile();
     } finally {
+      // Wait for any in-progress Drive sync to finish before disposing
+      int waitMs = 0;
+      while (DriveSyncer.isRunning && waitMs < 5000) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        waitMs += 100;
+      }
       coreInfo.dispose();
     }
   }

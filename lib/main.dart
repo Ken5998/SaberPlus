@@ -130,14 +130,26 @@ void startDriveSyncAfterLoaded() async {
   if (email == null) return;
   stows.driveLoggedIn = true;
   stows.driveEmail.value = email;
+  _cleanWebAnnotationsFromRecents();
   await DriveSyncer.sync();
   _startDrivePeriodicSync();
+}
+
+Future<void> _cleanWebAnnotationsFromRecents() async {
+  await stows.recentFiles.waitUntilRead();
+  final cleaned = stows.recentFiles.value
+      .where((f) => !f.endsWith('.quill.json') && !f.endsWith('.web.json'))
+      .toList();
+  if (cleaned.length != stows.recentFiles.value.length) {
+    stows.recentFiles.value = cleaned;
+    stows.recentFiles.notifyListeners();
+  }
 }
 
 Timer? _driveSyncTimer;
 void _startDrivePeriodicSync() {
   _driveSyncTimer?.cancel();
-  _driveSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+  _driveSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
     if (stows.driveLoggedIn) DriveSyncer.sync();
   });
 }

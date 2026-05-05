@@ -596,6 +596,10 @@ class FileManager {
 
           late final isSbn2 = filePath.endsWith(Editor.extension);
           late final isSbn1 = filePath.endsWith(Editor.extensionOldJson);
+          // Skip web annotation files — managed by the webapp only
+          if (filePath.endsWith('.quill.json') ||
+              filePath.endsWith('.web.json'))
+            return null;
 
           if (!includeExtensions) {
             if (isSbn2) {
@@ -924,6 +928,9 @@ class FileManager {
   static Future _saveFileAsRecentlyAccessed(String filePath) async {
     // don't add assets to recently accessed
     if (assetFileRegex.hasMatch(filePath)) return;
+    // don't add web annotation files to recently accessed
+    if (filePath.endsWith('.quill.json') || filePath.endsWith('.web.json'))
+      return;
 
     stows.recentFiles.value.remove(filePath);
     stows.recentFiles.value.insert(0, filePath);
